@@ -13,12 +13,8 @@ end_number = int(sys.argv[1])
 
 start_time = time.time()
 
-# Split work between nodes
-start = int((end_number / cluster_size) * my_rank) # This works with 4 PIs, may need modification for more but it *should* work
-end = int((end_number / cluster_size) * (my_rank + 1))
-
-if start == 0: # The origonal script skipped to 2
-    start = 2
+# Split work between nodes by changing the start number (*2 as it skipps even numbers)
+start = (my_rank * 2) + 1
 
 def func(candidate_number):
     found_prime = True
@@ -27,15 +23,15 @@ def func(candidate_number):
             found_prime = False
             break
     if found_prime:
-        return True
+        return True # If it's a prime, return true.
     return False
 
 if __name__ == "__main__":
     with Pool(4) as p:
-        primes = [sum(p.map(func, range(start, end)))]
+        primes = [sum(p.map(func, range(start, end_number, cluster_size * 2)))] # Cluster size starts at 1, with a 4 node server this will iterate by 8
 
 
-print(my_rank, start, end)
+print(my_rank, "Done")
 results = comm.gather(primes, root=0)
 
 if my_rank == 0:
@@ -47,6 +43,6 @@ if my_rank == 0:
 
     merged_primes = [item for sublist in results for item in sublist]
     merged_primes.sort()
-    print(merged_primes)
+    print(merged_primes) # Prints out the number found per node
     print('Primes discovered: ' + str(sum(merged_primes)))
 
