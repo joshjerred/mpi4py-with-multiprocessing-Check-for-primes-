@@ -1,4 +1,3 @@
-from mpi4py import MPI
 import time
 import sys
 from multiprocessing import Pool
@@ -13,10 +12,8 @@ threads = 4
 if (len(sys.argv) >= 4): # Check for -s arg
     threads = int(sys.argv[3])
     
-
-comm = MPI.COMM_WORLD
-my_rank = comm.Get_rank()
-cluster_size = comm.Get_size()
+my_rank = 0
+cluster_size = 1
 
 
 end_number = int(sys.argv[1])
@@ -41,19 +38,13 @@ if __name__ == "__main__":
         primes = [sum(p.map(isPrime, range(start, end_number, cluster_size * 2)))] # Cluster size starts at 1, with a 4 node server this will iterate by 8
 
 
-if not silent: print(my_rank, "Done")
-results = comm.gather(primes, root=0)
-
 if my_rank == 0:
     end = round(time.time() - start_time, 2)
 
     if not silent: print('Find all primes up to: ' + str(end_number))
-    if not silent: print('Nodes: ' + str(cluster_size))
+    if not silent: print('Local Multicore')
     if not silent: print('Time elasped: ' + str(end) + ' seconds')
-
-    merged_primes = [item for sublist in results for item in sublist]
-    merged_primes.sort()
-    if not silent: print(merged_primes) # Prints out the number found per node
-    if not silent: print('Primes discovered: ' + str(sum(merged_primes)))
-    data = [str(end_number), str(sum(merged_primes)), str(end), str(cluster_size), str(threads)]
+    if not silent: print(primes) # Prints out the number found per node
+    if not silent: print('Primes discovered: ' + str(sum(primes)))
+    data = [str(end_number), str(sum(primes)), str(end), str(cluster_size), str(threads)]
     if silent: print("Primes in: {:<15} Found: {:<10} Seconds: {: <10} Nodes: {: <10} Threads Per Node: {: <10}".format(*data))
